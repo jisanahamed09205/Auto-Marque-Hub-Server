@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 7000;
 
@@ -27,6 +27,53 @@ async function run() {
     await client.connect();
 
     const productCollection = client.db('productDB').collection('product');
+    const brandCollection = client.db('productDB').collection('brand');
+
+    app.get('/brands',async(req,res)=>{
+      const cursor = brandCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    app.get('/products/:name', async(req,res)=>{
+      const namesOfBrand = req.params.name
+      const query = {brandName : {$eq : namesOfBrand}}
+      const result = await productCollection.find(query).toArray()
+      res.send(result)
+    })
+
+    app.get('/productsKaku/:id',async(req,res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await productCollection.findOne(query)
+      res.send(result);
+    })
+
+    app.put('/productsKakus/:id',async(req,res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)}
+      const options = {upsert: true};
+      const updateCar = req.body;
+      const updated = {
+        $set: {
+          name: updateCar.name,
+          brandName: updateCar.brandName,
+          price: updateCar.price,
+          rating: updateCar.rating,
+          type: updateCar.type,
+          shortDescrib: updateCar.shortDescrib,
+          image: updateCar.image
+        }
+      }
+      const result =await productCollection.updateOne(filter,updated,options)
+      res.send(result)
+    })
+
+    app.get('/products',async(req,res)=>{
+      const cursor = productCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
 
     app.post('/products',async(req,res)=>{
         const newProduct = req.body;
